@@ -1,7 +1,5 @@
-// Cost calculator with COCOMO model maintaining original CostMetrics interface
 import { ProjectParams, ModuleSize, MODULE_SIZE_HOURS } from '@/lib/types/project';
 import { CostResult, CostBreakdown } from '@/lib/types/cost';
-import { ModuleConfig } from '@/lib/types/project';
 
 const COCOMO_CONSTANTS = {
   ORGANIC: {
@@ -22,8 +20,8 @@ const COCOMO_CONSTANTS = {
     c: 2.5,
     d: 0.32
   },
-  HOURS_PER_MONTH: 152,
-  HOURS_PER_DAY: 8
+  HOURS_PER_DAY: 8,
+  LOC_PER_HOUR: 50
 };
 
 interface ProjectType {
@@ -33,13 +31,10 @@ interface ProjectType {
 }
 
 const determineProjectType = (
-  modules: ModuleConfig[],
+  totalHours: number,
   teamSize: number
 ): ProjectType => {
-  const totalKLOC = modules.reduce(
-    (sum, mod) => sum + (MODULE_SIZE_HOURS[mod.size] * mod.complexity) / 20, 
-    0
-  );
+  const totalKLOC = (totalHours * COCOMO_CONSTANTS.LOC_PER_HOUR) / 1000;
 
   if (totalKLOC <= 50 && teamSize <= 5) {
     return {
@@ -65,73 +60,75 @@ const determineProjectType = (
 export const calculateCocomoCost = (params: ProjectParams): CostResult => {
   const { modules, developerRate, initialCost, teamSize } = params;
   
-  const totalEffort = modules.reduce(
+  const inputHours = modules.reduce(
     (sum, mod) => sum + (MODULE_SIZE_HOURS[mod.size] * mod.complexity),
     0
   );
   
-  const totalDays = Math.ceil(totalEffort / (COCOMO_CONSTANTS.HOURS_PER_DAY * teamSize));
-  const peakDay = totalDays * 0.4; // Peak at 40% of project duration
+  const projectType = determineProjectType(inputHours, teamSize);
+  const totalEffortHours = inputHours * projectType.factor;
+  const totalDays = Math.ceil(totalEffortHours / (COCOMO_CONSTANTS.HOURS_PER_DAY * teamSize));
+  const peakDay = totalDays * 0.4;
   
   let costBreakdown: CostBreakdown[] = [];
-  let totalCost = initialCost;
-  let dailyCosts: number[] = [];
+  let currentCost = initialCost;
+  const dailyCosts: number[] = [];
+  let totalEffortDistributed = 0;
+  
+  // Factor de eficiencia del equipo: disminuye a medida que el equipo crece
+  const teamEfficiencyFactor = 1 / Math.sqrt(teamSize);
   
   for (let day = 1; day <= totalDays; day++) {
-    // Rayleigh distribution formula
     const t = day / peakDay;
-    const dailyEffort = (2 * totalEffort / (peakDay * Math.E)) * 
-                       t * Math.exp(-(t * t));
+    const dailyTeamEffort = (2 * totalEffortHours / (peakDay * Math.E)) * 
+                           t * Math.exp(-(t * t));
+    totalEffortDistributed += dailyTeamEffort;
     
-    const dailyCost = dailyEffort * developerRate;
-    const maxDailyTeamCost = developerRate * COCOMO_CONSTANTS.HOURS_PER_DAY * teamSize;
+    // Ajuste del costo considerando la eficiencia del equipo
+    const dailyCost = dailyTeamEffort * developerRate * teamSize * teamEfficiencyFactor;
+    const maxDailyTeamCost = COCOMO_CONSTANTS.HOURS_PER_DAY * teamSize * developerRate * teamEfficiencyFactor;
     const adjustedDailyCost = Math.min(dailyCost, maxDailyTeamCost);
     
-    totalCost += adjustedDailyCost;
+    currentCost += adjustedDailyCost;
     dailyCosts.push(adjustedDailyCost);
     
     costBreakdown.push({
       day,
       cost: adjustedDailyCost,
-      cumulativeCost: totalCost,
+      cumulativeCost: currentCost,
       phase: 'Development'
     });
   }
 
-  const totalCalculatedEffort = dailyCosts.reduce((sum, cost) => sum + cost/developerRate, 0);
-  const scaleFactor = totalEffort / totalCalculatedEffort;
+  const effortScaleFactor = totalEffortHours / totalEffortDistributed;
+  const scaledDailyCosts = dailyCosts.map(cost => cost * effortScaleFactor);
+  currentCost = initialCost;
   
-  // Normalize costs to match total effort
   costBreakdown = costBreakdown.map((breakdown, index) => {
-    const adjustedCost = dailyCosts[index] * scaleFactor;
+    currentCost += scaledDailyCosts[index];
     return {
       ...breakdown,
-      cost: adjustedCost,
-      cumulativeCost: index === 0 
-        ? initialCost + adjustedCost
-        : costBreakdown[index-1].cumulativeCost + adjustedCost
+      cost: scaledDailyCosts[index],
+      cumulativeCost: currentCost,
+      phase: 'Development'
     };
   });
 
-  const adjustedDailyCosts = dailyCosts.map(cost => cost * scaleFactor);
-  const averageDailyCost = adjustedDailyCosts.reduce((a, b) => a + b) / adjustedDailyCosts.length;
-  const peakCost = Math.max(...adjustedDailyCosts);
-
   return {
-    totalCost: costBreakdown[costBreakdown.length - 1].cumulativeCost,
+    totalCost: currentCost,
     costBreakdown,
     metrics: {
-      averageDailyCost,
-      peakCost,
-      estimatedEffort: totalEffort,
-      efficiencyFactor: 100,
-      teamProductivity: determineProjectType(modules, teamSize).teamProductivity
+      averageDailyCost: scaledDailyCosts.reduce((a, b) => a + b) / scaledDailyCosts.length,
+      peakCost: Math.max(...scaledDailyCosts),
+      estimatedEffort: totalEffortHours,
+      efficiencyFactor: (totalEffortHours / (totalDays * COCOMO_CONSTANTS.HOURS_PER_DAY)) * 100,
+      teamProductivity: projectType.teamProductivity
     },
     summary: {
-      development: totalCost - initialCost,
+      development: currentCost - initialCost,
       overhead: initialCost,
-      requirements: totalEffort * 0.2 * developerRate,
-      testing: totalEffort * 0.3 * developerRate
+      requirements: 0,
+      testing: 0
     }
   };
 };

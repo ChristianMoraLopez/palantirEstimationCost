@@ -1,4 +1,4 @@
-import { ProjectParams, ModuleSize, MODULE_SIZE_HOURS } from '@/lib/types/project';
+import { ProjectParams, MODULE_SIZE_HOURS } from '@/lib/types/project';
 import { CostResult, CostBreakdown } from '@/lib/types/cost';
 import { ModuleConfig } from '@/lib/types/project';
 
@@ -31,21 +31,21 @@ const calculateTeamProductivity = (
 ): TeamProductivity => {
   const avgComplexity = modules.reduce((sum, mod) => sum + mod.complexity, 0) / modules.length;
   
-  if (avgComplexity <= RAYLEIGH_CONSTANTS.PRODUCTIVITY_FACTORS.SIMPLE.maxComplexity) {
+  if (avgComplexity <= RAYLEIGH_CONSTANTS.PRODUCTIVITY_FACTORS.SIMPLE.maxComplexity && teamSize <= 5) {
     return {
       factor: RAYLEIGH_CONSTANTS.PRODUCTIVITY_FACTORS.SIMPLE.factor,
-      description: 'Simple project with experienced team'
+      description: 'Simple project with small team'
     };
   }
-  if (avgComplexity <= RAYLEIGH_CONSTANTS.PRODUCTIVITY_FACTORS.MODERATE.maxComplexity) {
+  if (avgComplexity <= RAYLEIGH_CONSTANTS.PRODUCTIVITY_FACTORS.MODERATE.maxComplexity && teamSize <= 15) {
     return {
       factor: RAYLEIGH_CONSTANTS.PRODUCTIVITY_FACTORS.MODERATE.factor,
-      description: 'Moderate complexity with mixed experience'
+      description: 'Moderate complexity with medium team'
     };
   }
   return {
     factor: RAYLEIGH_CONSTANTS.PRODUCTIVITY_FACTORS.COMPLEX.factor,
-    description: 'Complex project requiring high expertise'
+    description: 'Complex project with large team'
   };
 };
 

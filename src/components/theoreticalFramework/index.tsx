@@ -6,7 +6,6 @@ import {
     UnorderedList, 
     ListItem, 
     Code,
-    Divider,
     Table,
     Thead,
     Tbody,
@@ -49,7 +48,7 @@ import {
     </Box>
    );
    
-   export const TheoreticalFramework = ({ totalCost, averageDailyCost, peakCost, estimatedEffort, teamSize, costBreakdown }: CostSummaryProps) => {
+   export const TheoreticalFramework = ({ totalCost, averageDailyCost, peakCost, estimatedEffort }: CostSummaryProps) => {
     const exampleData = {
       totalEffort: 480, // horas
       teamSize: 3,
@@ -161,7 +160,7 @@ import {
                   </Tr>
                   <Tr>
                     <Td>Factor de Forma</Td>
-                    <Td>Define la "agudeza" de la curva</Td>
+                    <Td>Define la &quot;agudeza&quot; de la curva</Td>
                     <Td>4/td²</Td>
                   </Tr>
                 </Tbody>

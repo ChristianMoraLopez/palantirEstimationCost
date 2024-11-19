@@ -15,7 +15,7 @@ interface CostChartProps {
   data: CostBreakdown[]; // Required, no es opcional
 }
 
-export const CostChart = ({ data, activeModel }: CostChartProps & { activeModel: number }) => {
+export const CostChart = ({ data }: CostChartProps & { activeModel: number }) => {
   if (!data || data.length === 0) {
     return (
       <Alert status="error" borderRadius="md" h="400px">

@@ -33,7 +33,7 @@ export default function Home() {
           </h1>
           
           <p className="mt-6 text-amber-800/60 font-serif italic">
-            "Un vistazo a través del tiempo para revelar los costos del futuro"
+          &quot;Un vistazo a través del tiempo para revelar los costos del futuro&quot;
           </p>
         </div>
 

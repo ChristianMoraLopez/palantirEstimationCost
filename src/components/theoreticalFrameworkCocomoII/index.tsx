@@ -6,7 +6,6 @@ import {
   UnorderedList,
   ListItem,
   Code,
-  Divider,
   Stack,
 } from "@chakra-ui/react";
 import type { CostSummaryProps } from "@/lib/types/cost";
@@ -81,182 +80,117 @@ export const CocomoFramework = ({
   averageDailyCost,
   peakCost,
   estimatedEffort,
-  teamSize,
-  costBreakdown,
+  teamSize
 }: CostSummaryProps) => {
-  // Cálculos COCOMO II
-  const monthlyEffort = estimatedEffort / (teamSize * 160);
-  const productivity = estimatedEffort / monthlyEffort;
-  const KLOC = estimatedEffort / 20;
-
-  // Factores de escala
-  const scaleFactors = {
-    PREC: {
-      value: 1.24,
-      name: "Precedencia",
-      description: "Experiencia previa con proyectos similares",
-    },
-    FLEX: {
-      value: 1.01,
-      name: "Flexibilidad",
-      description: "Flexibilidad del proceso de desarrollo",
-    },
-    RESL: {
-      value: 1.41,
-      name: "Resolución de Riesgos",
-      description: "Gestión de riesgos y arquitectura",
-    },
-    TEAM: {
-      value: 1.1,
-      name: "Cohesión del Equipo",
-      description: "Trabajo en equipo y comunicación",
-    },
-    PMAT: {
-      value: 1.56,
-      name: "Madurez del Proceso",
-      description: "Nivel de madurez de los procesos",
-    },
-  };
-
-  const B = 0.91;
-  const E =
-    B + 0.01 * Object.values(scaleFactors).reduce((a, b) => a + b.value, 0);
-  const A = 2.94;
-  const nominalEffort = A * Math.pow(KLOC, E);
-  const TDEV =
-    3.67 *
-    Math.pow(
-      nominalEffort,
-      0.28 +
-        0.002 * Object.values(scaleFactors).reduce((a, b) => a + b.value, 0)
-    );
-  const avgStaffing = nominalEffort / TDEV;
+  // Calcular el margen sobre el costo promedio
+  const margin = ((peakCost / averageDailyCost - 1) * 100);
+  const duration = Math.ceil(estimatedEffort / (8 * teamSize));
 
   return (
     <Box className="w-full p-8 bg-white rounded-lg shadow-xl">
       <VStack className="space-y-8">
         <Box>
           <Text className="text-3xl font-bold text-blue-700 border-b-4 border-blue-500 pb-2">
-            Marco Teórico: Modelo COCOMO II
+            Marco Teórico: Modelo COCOMO II Adaptado
           </Text>
           <Text className="mt-4 text-gray-700">
-            El Modelo Constructivo de Costos (COCOMO II) es una herramienta
-            matemática avanzada para la estimación de costos en proyectos de
-            software. Este marco combina principios de ingeniería de software
-            con análisis estadístico para proporcionar estimaciones precisas de
-            esfuerzo, tiempo y costo.
+            Esta implementación del Modelo COCOMO II utiliza una distribución 
+            Rayleigh para modelar el esfuerzo diario, reflejando el ciclo natural 
+            del desarrollo de software con un pico de productividad al 40% del proyecto.
           </Text>
         </Box>
 
         <Section
-          title="1. Fundamentos Matemáticos"
-          description="Las ecuaciones fundamentales que constituyen el núcleo del modelo COCOMO II."
+          title="1. Fundamentos del Modelo"
+          description="Ecuaciones base para la estimación del esfuerzo y costo."
         >
           <VStack className="space-y-4">
             <Formula
-              formula="PM = A × Size^E × ∏EMi"
-              description="Ecuación Principal de Esfuerzo"
-              explanation="Esta ecuación calcula el esfuerzo total necesario en personas-mes, considerando el tamaño del proyecto y diversos factores de ajuste."
+              formula="dailyEffort = (2 * totalEffort / (peakDay * e)) * t * exp(-(t * t))"
+              description="Distribución Rayleigh del Esfuerzo Diario"
+              explanation="Modela la variación del esfuerzo durante el proyecto"
               variables={[
                 {
-                  symbol: "PM",
-                  description: "Esfuerzo en Personas-Mes",
-                  example: "100 PM",
+                  symbol: "totalEffort",
+                  description: "Esfuerzo total en horas",
+                  example: `${estimatedEffort} horas`
                 },
                 {
-                  symbol: "A",
-                  description: "Constante de calibración (2.94)",
-                  example: "2.94",
+                  symbol: "peakDay",
+                  description: "Día de máximo esfuerzo (40% del total)",
+                  example: `día ${Math.ceil(duration * 0.4)} de ${duration}`
                 },
                 {
-                  symbol: "Size",
-                  description: "Tamaño en miles de líneas de código",
-                  example: "50 KLOC",
-                },
-                {
-                  symbol: "E",
-                  description: "Factor exponencial de escala",
-                  example: "1.1",
-                },
-                {
-                  symbol: "EMi",
-                  description: "Multiplicadores de esfuerzo",
-                  example: "1.2",
-                },
+                  symbol: "t",
+                  description: "Ratio del día actual al día pico",
+                  example: "día/peakDay"
+                }
               ]}
             />
 
             <Formula
-              formula="E = B + 0.01 × ΣSFi"
-              description="Factor Exponencial de Escala"
-              explanation="Determina cómo el esfuerzo escala con el tamaño del proyecto."
+              formula="dailyCost = dailyEffort * developerRate * teamSize"
+              description="Cálculo del Costo Diario"
               variables={[
                 {
-                  symbol: "B",
-                  description:
-                    "Valor base (0.91 para proyectos semi-separados)",
-                  example: "0.91",
+                  symbol: "dailyEffort",
+                  description: "Esfuerzo calculado para el día",
                 },
                 {
-                  symbol: "SFi",
-                  description: "Factores de escala",
-                  example: "PREC + FLEX + RESL + TEAM + PMAT",
-                },
-              ]}
-            />
-
-            <Formula
-              formula="TDEV = C × PM^F"
-              description="Tiempo de Desarrollo"
-              explanation="Calcula la duración del proyecto en meses basándose en el esfuerzo calculado."
-              variables={[
-                {
-                  symbol: "TDEV",
-                  description: "Tiempo de desarrollo en meses",
-                  example: "12 meses",
+                  symbol: "developerRate",
+                  description: "Tarifa por hora del desarrollador",
                 },
                 {
-                  symbol: "C",
-                  description: "Constante de tiempo (3.67)",
-                  example: "3.67",
-                },
-                {
-                  symbol: "F",
-                  description:
-                    "Factor de escala temporal (0.28 + 0.002 × ΣSFi)",
-                  example: "0.33",
-                },
+                  symbol: "teamSize",
+                  description: "Tamaño del equipo",
+                  example: String(teamSize)
+                }
               ]}
             />
           </VStack>
         </Section>
 
         <Section
-          title="2. Aplicación al Proyecto Actual"
-          description="Análisis detallado de las métricas calculadas para este proyecto específico."
+          title="2. Clasificación del Proyecto"
+          description="Factores de ajuste según el tamaño y complejidad."
         >
           <Box className="bg-blue-50 p-6 rounded-md">
             <VStack className="items-start space-y-4">
               <Box>
-                <Text className="font-bold">Métricas Base</Text>
+                <Text className="font-bold">Tipos de Proyecto</Text>
+                <UnorderedList>
+                  <ListItem>
+                    Orgánico (factor 1.0): Proyectos pequeños (≤50 KLOC, ≤5 personas)
+                  </ListItem>
+                  <ListItem>
+                    Semi-separado (factor 1.2): Proyectos medianos (≤300 KLOC, ≤15 personas)
+                  </ListItem>
+                  <ListItem>
+                    Embebido (factor 1.4): Proyectos grandes o complejos
+                  </ListItem>
+                </UnorderedList>
+              </Box>
+            </VStack>
+          </Box>
+        </Section>
+
+        <Section
+          title="3. Análisis del Proyecto Actual"
+          description="Métricas calculadas para este proyecto específico."
+        >
+          <Box className="bg-blue-50 p-6 rounded-md">
+            <VStack className="items-start space-y-6">
+              <Box>
+                <Text className="font-bold">Esfuerzo y Duración</Text>
                 <UnorderedList>
                   <ListItem>
                     Esfuerzo Total: {estimatedEffort.toFixed(2)} horas
                   </ListItem>
-                  <ListItem>Equipo: {teamSize} personas</ListItem>
-                  <ListItem>KLOC Estimado: {KLOC.toFixed(2)}K</ListItem>
-                </UnorderedList>
-              </Box>
-
-              <Box>
-                <Text className="font-bold">Métricas Calculadas</Text>
-                <UnorderedList>
                   <ListItem>
-                    Esfuerzo Nominal: {nominalEffort.toFixed(2)} personas-mes
+                    Duración: {duration} días
                   </ListItem>
-                  <ListItem>Duración: {TDEV.toFixed(2)} meses</ListItem>
                   <ListItem>
-                    Productividad: {productivity.toFixed(2)} LOC/persona-mes
+                    Tamaño del Equipo: {teamSize} personas
                   </ListItem>
                 </UnorderedList>
               </Box>
@@ -264,11 +198,18 @@ export const CocomoFramework = ({
               <Box>
                 <Text className="font-bold">Métricas de Costo</Text>
                 <UnorderedList>
-                  <ListItem>Costo Total: ${totalCost.toFixed(2)}</ListItem>
+                  <ListItem>
+                    Costo Total: ${totalCost.toFixed(2)}
+                  </ListItem>
                   <ListItem>
                     Costo Diario Promedio: ${averageDailyCost.toFixed(2)}
                   </ListItem>
-                  <ListItem>Costo Pico: ${peakCost.toFixed(2)}</ListItem>
+                  <ListItem>
+                    Costo Pico: ${peakCost.toFixed(2)}
+                  </ListItem>
+                  <ListItem>
+                    Variación Máxima: {margin.toFixed(1)}% sobre el promedio
+                  </ListItem>
                 </UnorderedList>
               </Box>
             </VStack>
@@ -276,115 +217,23 @@ export const CocomoFramework = ({
         </Section>
 
         <Section
-          title="3. Factores de Escala"
-          description="Los factores que influyen en cómo el proyecto escala con su tamaño."
-        >
-          <VStack className="space-y-4">
-            {Object.entries(scaleFactors).map(([key, data]) => (
-              <Box key={key} className="w-full bg-gray-50 p-4 rounded-md">
-                <Text className="font-bold">
-                  {data.name} ({key})
-                </Text>
-                <Text className="text-sm">{data.description}</Text>
-                <Text className="text-sm mt-1">
-                  Valor: {data.value.toFixed(2)}
-                </Text>
-                <Box
-                  className="bg-blue-200 h-2 mt-2 rounded"
-                  style={{ width: `${(data.value / 2) * 100}%` }}
-                />
-              </Box>
-            ))}
-          </VStack>
-        </Section>
-
-        <Section
-          title="4. Análisis de Costos y Esfuerzo"
-          description="Desglose de costos por fases principales del proyecto."
+          title="4. Distribución del Esfuerzo"
+          description="Patrón de esfuerzo según la distribución Rayleigh."
         >
           <Box className="bg-gray-50 p-6 rounded-md">
-            <VStack spacing={6}>
+            <VStack spacing={4}>
               <Box className="w-full">
-                <Text className="font-bold mb-4">Fase de Inicio (20%)</Text>
-                <Box className="flex items-center space-x-2 mb-4">
-                  <Box className="flex-grow">
-                    <Box
-                      className="bg-blue-400 h-4 rounded"
-                      style={{ width: "20%" }}
-                    />
-                  </Box>
-                  <Text className="text-sm">
-                    ${(totalCost * 0.2).toFixed(2)}
-                  </Text>
-                </Box>
-                <UnorderedList fontSize="sm">
-                  <ListItem>Análisis de requisitos</ListItem>
-                  <ListItem>Planificación inicial</ListItem>
-                  <ListItem>Diseño de arquitectura</ListItem>
-                </UnorderedList>
-              </Box>
-
-              <Box className="w-full">
-                <Text className="font-bold mb-4">
-                  Fase de Elaboración (30%)
-                </Text>
-                <Box className="flex items-center space-x-2 mb-4">
-                  <Box className="flex-grow">
-                    <Box
-                      className="bg-green-400 h-4 rounded"
-                      style={{ width: "30%" }}
-                    />
-                  </Box>
-                  <Text className="text-sm">
-                    ${(totalCost * 0.3).toFixed(2)}
-                  </Text>
-                </Box>
-                <UnorderedList fontSize="sm">
-                  <ListItem>Desarrollo de componentes core</ListItem>
-                  <ListItem>Establecimiento de infraestructura</ListItem>
-                  <ListItem>Pruebas preliminares</ListItem>
-                </UnorderedList>
-              </Box>
-
-              <Box className="w-full">
-                <Text className="font-bold mb-4">
-                  Fase de Construcción (35%)
-                </Text>
-                <Box className="flex items-center space-x-2 mb-4">
-                  <Box className="flex-grow">
-                    <Box
-                      className="bg-purple-400 h-4 rounded"
-                      style={{ width: "35%" }}
-                    />
-                  </Box>
-                  <Text className="text-sm">
-                    ${(totalCost * 0.35).toFixed(2)}
-                  </Text>
-                </Box>
-                <UnorderedList fontSize="sm">
-                  <ListItem>Implementación de funcionalidades</ListItem>
-                  <ListItem>Integración continua</ListItem>
-                  <ListItem>Pruebas unitarias y de integración</ListItem>
-                </UnorderedList>
-              </Box>
-
-              <Box className="w-full">
-                <Text className="font-bold mb-4">Fase de Transición (15%)</Text>
-                <Box className="flex items-center space-x-2 mb-4">
-                  <Box className="flex-grow">
-                    <Box
-                      className="bg-yellow-400 h-4 rounded"
-                      style={{ width: "15%" }}
-                    />
-                  </Box>
-                  <Text className="text-sm">
-                    ${(totalCost * 0.15).toFixed(2)}
-                  </Text>
-                </Box>
-                <UnorderedList fontSize="sm">
-                  <ListItem>Pruebas de aceptación</ListItem>
-                  <ListItem>Documentación final</ListItem>
-                  <ListItem>Despliegue y entrega</ListItem>
+                <Text className="font-bold mb-2">Fases del Proyecto</Text>
+                <UnorderedList>
+                  <ListItem>
+                    Inicio (0-20% duración): Esfuerzo incremental
+                  </ListItem>
+                  <ListItem>
+                    Pico (40% duración): Máxima productividad
+                  </ListItem>
+                  <ListItem>
+                    Cierre (60-100% duración): Reducción gradual
+                  </ListItem>
                 </UnorderedList>
               </Box>
             </VStack>
@@ -392,80 +241,47 @@ export const CocomoFramework = ({
         </Section>
 
         <Section
-          title="5. Recomendaciones Prácticas"
-          description="Sugerencias basadas en el análisis COCOMO II para la gestión efectiva del proyecto."
+          title="5. Recomendaciones de Gestión"
+          description="Consideraciones para la gestión efectiva del proyecto."
         >
           <Box className="space-y-4">
             <Box className="bg-green-50 p-4 rounded-md">
-              <Text className="font-bold mb-2">Planificación de Recursos</Text>
+              <Text className="font-bold mb-2">Gestión de Recursos</Text>
               <UnorderedList>
                 <ListItem>
-                  Mantener un equipo base de {Math.ceil(avgStaffing)} personas
+                  Planificar capacidad máxima para el pico (día {Math.ceil(duration * 0.4)})
                 </ListItem>
                 <ListItem>
-                  Planificar para una duración de {Math.ceil(TDEV)} meses
+                  Presupuesto diario base: ${averageDailyCost.toFixed(2)}
                 </ListItem>
                 <ListItem>
-                  Presupuesto mensual objetivo: ${(totalCost / TDEV).toFixed(2)}
-                </ListItem>
-              </UnorderedList>
-            </Box>
-
-            <Box className="bg-yellow-50 p-4 rounded-md">
-              <Text className="font-bold mb-2">Consideraciones de Riesgo</Text>
-              <UnorderedList>
-                <ListItem>
-                  Preparar para picos de costo de hasta ${peakCost.toFixed(2)}
-                </ListItem>
-                <ListItem>
-                  Mantener un margen de{" "}
-                  {((peakCost / averageDailyCost - 1) * 100).toFixed(1)}% sobre
-                  el costo promedio
-                </ListItem>
-                <ListItem>
-                  Considerar la variabilidad en la productividad del equipo
+                  Reserva para picos: ${(peakCost - averageDailyCost).toFixed(2)} adicionales
                 </ListItem>
               </UnorderedList>
             </Box>
           </Box>
         </Section>
 
-        <Section title="6. Resumen Ejecutivo">
+        <Section title="6. Resumen">
           <Box className="w-full p-6 border border-gray-200 rounded-md bg-gray-50">
             <VStack className="items-start space-y-4">
               <Text className="text-xl font-bold">
-                Resumen de Costes del Proyecto Actual
+                Conclusiones Clave
               </Text>
-
-              <Box>
-                <Text className="font-bold">Métricas Clave:</Text>
-                <UnorderedList className="space-y-2">
-                  <ListItem>Coste Total: ${totalCost.toFixed(2)}</ListItem>
-                  <ListItem>
-                    Coste Diario Promedio: ${averageDailyCost.toFixed(2)}
-                  </ListItem>
-                  <ListItem>Coste Pico: ${peakCost.toFixed(2)}</ListItem>
-                  <ListItem>
-                    Horas Totales: {estimatedEffort.toFixed(1)}
-                  </ListItem>
-                </UnorderedList>
-              </Box>
-
-              <Box>
-                <Text className="font-bold">Interpretación de Resultados:</Text>
-                <UnorderedList className="space-y-2">
-                  <ListItem>
-                    Fase Inicial: Menor coste debido al período de
-                    familiarización
-                  </ListItem>
-                  <ListItem>
-                    Fase Media: Pico de productividad y coste máximo
-                  </ListItem>
-                  <ListItem>
-                    Fase Final: Reducción gradual del coste diario
-                  </ListItem>
-                </UnorderedList>
-              </Box>
+              <UnorderedList className="space-y-2">
+                <ListItem>
+                  Esfuerzo total de {estimatedEffort.toFixed(1)} horas distribuido en {duration} días
+                </ListItem>
+                <ListItem>
+                  Inversión total de ${totalCost.toFixed(2)}
+                </ListItem>
+                <ListItem>
+                  Pico de esfuerzo al 40% del proyecto (día {Math.ceil(duration * 0.4)})
+                </ListItem>
+                <ListItem>
+                  Variación de costos entre ${averageDailyCost.toFixed(2)} y ${peakCost.toFixed(2)} por día
+                </ListItem>
+              </UnorderedList>
             </VStack>
           </Box>
         </Section>

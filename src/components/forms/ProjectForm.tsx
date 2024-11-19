@@ -21,13 +21,12 @@ import {
   Alert,
   AlertIcon,
 } from "@chakra-ui/react";
-import { Plus, DeleteIcon, InfoIcon, Info, Trash2 } from "lucide-react";
+import { Plus, Info, Trash2 } from "lucide-react";
 import {
   ModuleSize,
   ModuleConfig,
   ProjectParams,
-  MODULE_SIZE_HOURS,
-  MODULE_EXAMPLES,
+  MODULE_SIZE_HOURS
 } from "@/lib/types/project";
 import { InputField } from "./InputField";
 
@@ -68,6 +67,9 @@ const COMPLEXITY_EXPLANATION = {
     },
   ],
 };
+
+type ModuleField = keyof ModuleConfig;
+type ModuleValue = string | number | ModuleSize;
 
 export const ProjectForm = ({ onSubmit, initialValues }: ProjectFormProps) => {
     const toast = useToast();
@@ -138,11 +140,14 @@ export const ProjectForm = ({ onSubmit, initialValues }: ProjectFormProps) => {
     
       const updateModule = (
         index: number,
-        field: keyof ModuleConfig,
-        value: any
+        field: ModuleField,
+        value: ModuleValue
       ) => {
         const newModules = [...modules];
-        newModules[index] = { ...newModules[index], [field]: value };
+        newModules[index] = { 
+          ...newModules[index], 
+          [field]: value 
+        };
         setModules(newModules);
       };
     
