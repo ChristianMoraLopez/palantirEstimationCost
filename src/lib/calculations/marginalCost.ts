@@ -63,7 +63,7 @@ export const calculateMarginalCost = (params: ProjectParams): CostResult => {
   
   let costBreakdown: CostBreakdown[] = [];
   let totalCost = initialCost;
-  let dailyCosts: number[] = [];
+  const dailyCosts: number[] = [];
   
   for (let day = 1; day <= totalDays; day++) {
     const t = day / peakDay;

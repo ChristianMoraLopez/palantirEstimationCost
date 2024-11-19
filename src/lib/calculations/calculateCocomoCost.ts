@@ -1,4 +1,4 @@
-import { ProjectParams, ModuleSize, MODULE_SIZE_HOURS } from '@/lib/types/project';
+import { ProjectParams, MODULE_SIZE_HOURS } from '@/lib/types/project';
 import { CostResult, CostBreakdown } from '@/lib/types/cost';
 
 const COCOMO_CONSTANTS = {
