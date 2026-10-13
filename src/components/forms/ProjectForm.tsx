@@ -19,6 +19,7 @@ import {
   HStack,
   Divider,
   Alert,
+  Stack,
   AlertIcon,
 } from "@chakra-ui/react";
 import { Plus, Info, Trash2 } from "lucide-react";
@@ -201,12 +202,19 @@ export const ProjectForm = ({ onSubmit, initialValues }: ProjectFormProps) => {
   };
 
   return (
-    <Box as="form" onSubmit={handleSubmit} className="relative">
-      <VStack spacing={8} className="relative">
+    <Box as="form" onSubmit={handleSubmit} className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <VStack spacing={{ base: 4, md: 8 }} className="relative">
         <Box w="full">
-          <HStack mb={6} justify="space-between" align="center">
+          {/* Header Section */}
+          <Stack 
+            direction={{ base: "column", sm: "row" }} 
+            mb={{ base: 4, md: 6 }} 
+            justify="space-between" 
+            align={{ base: "stretch", sm: "center" }}
+            spacing={4}
+          >
             <Text
-              fontSize="xl"
+              fontSize={{ base: "lg", md: "xl" }}
               fontWeight="bold"
               className="font-serif text-amber-800"
             >
@@ -215,138 +223,128 @@ export const ProjectForm = ({ onSubmit, initialValues }: ProjectFormProps) => {
             <Button
               leftIcon={<Plus className="w-4 h-4" />}
               onClick={addModule}
-              className="bg-amber-600 hover:bg-amber-700 text-white font-serif"
+              className="bg-amber-600 hover:bg-amber-700 text-white font-serif w-full sm:w-auto"
               _hover={{ transform: "translateY(-1px)" }}
               transition="all 0.2s"
             >
               Add Module
             </Button>
-          </HStack>
+          </Stack>
 
-          <VStack spacing={6} w="full">
+          {/* Modules Section */}
+          <VStack spacing={{ base: 4, md: 6 }} w="full">
             {modules.map((module, index) => (
               <Box
                 key={index}
                 w="full"
-                p={6}
+                p={{ base: 4, md: 6 }}
                 className="relative bg-white/80 backdrop-blur-sm rounded-lg border border-amber-200 shadow-lg hover:shadow-xl transition-all duration-300"
               >
-                {/* Decoración élfica en las esquinas */}
-                <div className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-amber-600/30 rounded-tl" />
-                <div className="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 border-amber-600/30 rounded-tr" />
-                <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-amber-600/30 rounded-bl" />
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-amber-600/30 rounded-br" />
-
-                <HStack spacing={6} alignItems="flex-start">
+                {/* Corner decorations remain the same */}
+                
+                <Stack 
+                  direction={{ base: "column", lg: "row" }} 
+                  spacing={{ base: 4, lg: 6 }} 
+                  alignItems="flex-start"
+                  w="full"
+                >
                   <FormControl isRequired>
                     <FormLabel className="font-serif text-amber-800">
                       Module Name
                     </FormLabel>
                     <Input
                       value={module.name}
-                      onChange={(e) =>
-                        updateModule(index, "name", e.target.value)
-                      }
+                      onChange={(e) => updateModule(index, "name", e.target.value)}
                       placeholder="e.g., About Us, Products, etc."
                       className="border-amber-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-200"
                     />
                   </FormControl>
 
-                  <FormControl isRequired>
-                    <FormLabel className="font-serif text-amber-800">
-                      Size
-                    </FormLabel>
-                    <Select
-                      value={module.size}
-                      onChange={(e) =>
-                        updateModule(index, "size", e.target.value)
-                      }
-                      className="border-amber-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-200"
-                    >
-                      {Object.entries(ModuleSize).map(([key, value]) => (
-                        <option key={key} value={value}>
-                          {key} ({MODULE_SIZE_HOURS[value]}h)
-                        </option>
-                      ))}
-                    </Select>
-                  </FormControl>
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w={{ base: "full", lg: "auto" }}>
+                    <FormControl isRequired>
+                      <FormLabel className="font-serif text-amber-800">
+                        Size
+                      </FormLabel>
+                      <Select
+                        value={module.size}
+                        onChange={(e) => updateModule(index, "size", e.target.value)}
+                        className="border-amber-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-200"
+                      >
+                        {Object.entries(ModuleSize).map(([key, value]) => (
+                          <option key={key} value={value}>
+                            {key} ({MODULE_SIZE_HOURS[value]}h)
+                          </option>
+                        ))}
+                      </Select>
+                    </FormControl>
 
-                  <FormControl isRequired>
-                    <FormLabel className="font-serif text-amber-800">
-                      <HStack>
-                        <Text>Module Complexity</Text>
-                        <Tooltip
-                          label={<ComplexityTooltip />}
-                          hasArrow
-                          placement="right"
-                          openDelay={0}
-                          closeDelay={100}
-                        >
-                          <Box cursor="help">
-                            <Info size={16} className="text-amber-600" />
-                          </Box>
-                        </Tooltip>
-                      </HStack>
-                    </FormLabel>
-
-                    <HStack spacing={4}>
-                      <InputField
-                        value={module.complexity}
-                        onChange={(value: number) =>
-                          updateModule(index, "complexity", value)
-                        }
-                        min={1}
-                        max={10}
-                        step={1}
-                        required
-                        width="100px"
-                      />
-
-                      {(() => {
-                        const getComplexityInfo = (value: number) => {
-                          if (value <= 3)
-                            return { color: "emerald", text: "Simple" };
-                          if (value <= 6)
-                            return { color: "amber", text: "Moderate" };
-                          if (value <= 8)
-                            return { color: "orange", text: "Complex" };
-                          return { color: "red", text: "Very Complex" };
-                        };
-
-                        const complexityInfo = getComplexityInfo(
-                          module.complexity
-                        );
-
-                        return (
-                          <Badge
-                            className={`bg-${complexityInfo.color}-100 text-${complexityInfo.color}-800 border border-${complexityInfo.color}-200`}
-                            fontSize="md"
-                            p={2}
-                            minWidth="100px"
-                            textAlign="center"
+                    <FormControl isRequired>
+                      <FormLabel className="font-serif text-amber-800">
+                        <HStack>
+                          <Text>Complexity</Text>
+                          <Tooltip
+                            label={<ComplexityTooltip />}
+                            hasArrow
+                            placement="right"
+                            openDelay={0}
+                            closeDelay={100}
                           >
-                            {complexityInfo.text}
-                          </Badge>
-                        );
-                      })()}
-                    </HStack>
+                            <Box cursor="help">
+                              <Info size={16} className="text-amber-600" />
+                            </Box>
+                          </Tooltip>
+                        </HStack>
+                      </FormLabel>
 
-                    <Text
-                      fontSize="sm"
-                      className="text-amber-600/70 font-serif italic mt-2"
-                    >
-                      Adjust based on module complexity (1-10)
-                    </Text>
-                  </FormControl>
+                      <Stack 
+                        direction={{ base: "column", sm: "row" }} 
+                        spacing={4}
+                        align={{ base: "stretch", sm: "center" }}
+                      >
+                        <InputField
+                          value={module.complexity}
+                          onChange={(value: number) => updateModule(index, "complexity", value)}
+                          min={1}
+                          max={10}
+                          step={1}
+                          required
+                          width="100px"
+                        />
+
+                        {(() => {
+                          const getComplexityInfo = (value: number) => {
+                            if (value <= 3) return { color: "emerald", text: "Simple" };
+                            if (value <= 6) return { color: "amber", text: "Moderate" };
+                            if (value <= 8) return { color: "orange", text: "Complex" };
+                            return { color: "red", text: "Very Complex" };
+                          };
+
+                          const complexityInfo = getComplexityInfo(module.complexity);
+
+                          return (
+                            <Badge
+                              className={`bg-${complexityInfo.color}-100 text-${complexityInfo.color}-800 border border-${complexityInfo.color}-200`}
+                              fontSize="md"
+                              p={2}
+                              width={{ base: "full", sm: "100px" }}
+                              textAlign="center"
+                            >
+                              {complexityInfo.text}
+                            </Badge>
+                          );
+                        })()}
+                      </Stack>
+                    </FormControl>
+                  </SimpleGrid>
 
                   <IconButton
                     aria-label="Remove module"
                     icon={<Trash2 className="w-4 h-4" />}
                     onClick={() => removeModule(index)}
-                    className="text-red-600 hover:bg-red-50"
+                    className="text-red-600 hover:bg-red-50 self-start mt-8"
                     variant="ghost"
                   />
-                </HStack>
+                </Stack>
               </Box>
             ))}
           </VStack>
@@ -367,7 +365,12 @@ export const ProjectForm = ({ onSubmit, initialValues }: ProjectFormProps) => {
 
         <Divider className="border-amber-200" />
 
-        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} width="full">
+        {/* Parameters Section */}
+        <SimpleGrid 
+          columns={{ base: 1, md: 2, lg: 3 }} 
+          spacing={{ base: 4, md: 6 }} 
+          width="full"
+        >
           <InputField
             label="Developer Rate ($/hour)"
             value={params.developerRate}
